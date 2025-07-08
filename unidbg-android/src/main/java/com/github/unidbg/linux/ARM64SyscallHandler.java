@@ -1,10 +1,6 @@
 package com.github.unidbg.linux;
 
-import com.github.unidbg.AbstractEmulator;
-import com.github.unidbg.Emulator;
-import com.github.unidbg.LongJumpException;
-import com.github.unidbg.StopEmulatorException;
-import com.github.unidbg.Svc;
+import com.github.unidbg.*;
 import com.github.unidbg.arm.ARM;
 import com.github.unidbg.arm.ARMEmulator;
 import com.github.unidbg.arm.Arm64Svc;
@@ -16,17 +12,10 @@ import com.github.unidbg.file.FileIO;
 import com.github.unidbg.file.FileResult;
 import com.github.unidbg.file.IOResolver;
 import com.github.unidbg.file.linux.AndroidFileIO;
+import com.github.unidbg.file.linux.BaseAndroidFileIO;
 import com.github.unidbg.file.linux.IOConstants;
 import com.github.unidbg.linux.android.AndroidResolver;
-import com.github.unidbg.linux.file.ByteArrayFileIO;
-import com.github.unidbg.linux.file.DriverFileIO;
-import com.github.unidbg.linux.file.LocalAndroidUdpSocket;
-import com.github.unidbg.linux.file.LocalSocketIO;
-import com.github.unidbg.linux.file.NetLinkSocket;
-import com.github.unidbg.linux.file.PipedSocketIO;
-import com.github.unidbg.linux.file.SocketIO;
-import com.github.unidbg.linux.file.TcpSocket;
-import com.github.unidbg.linux.file.UdpSocket;
+import com.github.unidbg.linux.file.*;
 import com.github.unidbg.linux.struct.RLimit64;
 import com.github.unidbg.linux.struct.Stat64;
 import com.github.unidbg.linux.thread.MarshmallowThread;
@@ -57,6 +46,7 @@ public class ARM64SyscallHandler extends AndroidSyscallHandler {
     private static final Logger log = LoggerFactory.getLogger(ARM64SyscallHandler.class);
 
     private final SvcMemory svcMemory;
+    private int nextFd = 0x4000;
 
     public ARM64SyscallHandler(SvcMemory svcMemory) {
         super();
@@ -137,6 +127,15 @@ public class ARM64SyscallHandler extends AndroidSyscallHandler {
                     return;
                 case 19:
                     backend.reg_write(Arm64Const.UC_ARM64_REG_X0, eventfd2(emulator));
+                    return;
+                case 20:
+                    backend.reg_write(Arm64Const.UC_ARM64_REG_X0, epoll_create1(emulator));
+                    return;
+                case 21:
+                    backend.reg_write(Arm64Const.UC_ARM64_REG_X0, epoll_ctl(emulator));
+                    return;
+                case 22:
+                    backend.reg_write(Arm64Const.UC_ARM64_REG_X0, epoll_pwait(emulator));
                     return;
                 case 64:
                     backend.reg_write(Arm64Const.UC_ARM64_REG_X0, write(emulator));
@@ -1243,6 +1242,58 @@ public class ARM64SyscallHandler extends AndroidSyscallHandler {
             emulator.attach().debug();
         }
         throw new UnsupportedOperationException("clk_id=" + clk_id);
+    }
+
+    protected long epoll_create1(Emulator<?> emulator) {
+        RegisterContext ctx = emulator.getContext();
+        int flags = ctx.getIntArg(0);
+
+        EpollFileIO epoll = new EpollFileIO(flags);
+        return allocFd(epoll);
+    }
+
+    private long epoll_ctl(Emulator<?> emu) {
+        RegisterContext ctx = emu.getContext();
+
+        int epfd = ctx.getIntArg(0);
+        int op = ctx.getIntArg(1);
+        int fd = ctx.getIntArg(2);
+        long evPtr = ctx.getLongArg(3);
+
+        FileIO fio = fdMap.get(epfd);
+        if (!(fio instanceof EpollFileIO)) {
+            return -9;
+        }
+
+        int events = 0;
+        if (evPtr != 0) {
+            Pointer p = UnidbgPointer.pointer(emu, evPtr);
+            assert p != null;
+            events = p.getInt(0);
+        }
+        return ((EpollFileIO) fio).ctl(fd, op, events);
+    }
+
+
+    private long epoll_pwait(Emulator<?> emu) {
+        RegisterContext ctx = emu.getContext();
+
+        int epfd = ctx.getIntArg(0);
+        long evPtr = ctx.getLongArg(1);
+        int maxEvt = ctx.getIntArg(2);
+        int timeout = ctx.getIntArg(3);
+
+        FileIO fio = fdMap.get(epfd);
+        if (!(fio instanceof EpollFileIO)) {
+            return -9;
+        }
+        return ((EpollFileIO) fio).waitEvents(emu, evPtr, maxEvt, timeout);
+    }
+
+    private long allocFd(BaseAndroidFileIO fio) {
+        int fd = getMinFd();
+        fdMap.put(fd, fio);
+        return fd;
     }
 
     protected long ptrace(Emulator<?> emulator) {
