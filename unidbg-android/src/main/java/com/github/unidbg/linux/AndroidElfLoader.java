@@ -1,10 +1,7 @@
 package com.github.unidbg.linux;
 
-import com.github.unidbg.Alignment;
-import com.github.unidbg.Emulator;
-import com.github.unidbg.LibraryResolver;
+import com.github.unidbg.*;
 import com.github.unidbg.Module;
-import com.github.unidbg.Symbol;
 import com.github.unidbg.arm.ARM;
 import com.github.unidbg.arm.ARMEmulator;
 import com.github.unidbg.file.FileIO;
@@ -13,12 +10,7 @@ import com.github.unidbg.file.linux.IOConstants;
 import com.github.unidbg.hook.HookListener;
 import com.github.unidbg.linux.android.ElfLibraryFile;
 import com.github.unidbg.linux.thread.PThreadInternal;
-import com.github.unidbg.memory.MemRegion;
-import com.github.unidbg.memory.Memory;
-import com.github.unidbg.memory.MemoryAllocBlock;
-import com.github.unidbg.memory.MemoryBlock;
-import com.github.unidbg.memory.MemoryBlockImpl;
-import com.github.unidbg.memory.MemoryMap;
+import com.github.unidbg.memory.*;
 import com.github.unidbg.pointer.UnidbgPointer;
 import com.github.unidbg.spi.AbstractLoader;
 import com.github.unidbg.spi.InitFunction;
@@ -29,18 +21,7 @@ import com.github.unidbg.unix.IO;
 import com.github.unidbg.unix.UnixSyscallHandler;
 import com.github.unidbg.virtualmodule.VirtualSymbol;
 import com.sun.jna.Pointer;
-import net.fornwall.jelf.ArmExIdx;
-import net.fornwall.jelf.ElfDynamicStructure;
-import net.fornwall.jelf.ElfException;
-import net.fornwall.jelf.ElfFile;
-import net.fornwall.jelf.ElfRelocation;
-import net.fornwall.jelf.ElfSection;
-import net.fornwall.jelf.ElfSegment;
-import net.fornwall.jelf.ElfSymbol;
-import net.fornwall.jelf.GnuEhFrameHeader;
-import net.fornwall.jelf.MemoizedObject;
-import net.fornwall.jelf.PtLoadData;
-import net.fornwall.jelf.SymbolLocator;
+import net.fornwall.jelf.*;
 import org.apache.commons.io.FilenameUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -51,14 +32,9 @@ import unicorn.UnicornConst;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
+import java.lang.reflect.Array;
+import java.util.*;
+import java.util.stream.Stream;
 
 public class AndroidElfLoader extends AbstractLoader<AndroidFileIO> implements Memory, Loader {
 
@@ -74,12 +50,16 @@ public class AndroidElfLoader extends AbstractLoader<AndroidFileIO> implements M
         backend.mem_map(STACK_BASE - stackSize, stackSize, UnicornConst.UC_PROT_READ | UnicornConst.UC_PROT_WRITE);
 
         setStackPoint(STACK_BASE);
-        this.environ = initializeTLS(new String[] {
+        String[] tlsEnv = new String[]{
                 "ANDROID_DATA=/data",
                 "ANDROID_ROOT=/system",
                 "PATH=/sbin:/vendor/bin:/system/sbin:/system/bin:/system/xbin",
-                "NO_ADDR_COMPAT_LAYOUT_FIXUP=1"
-        });
+                "NO_ADDR_COMPAT_LAYOUT_FIXUP=1",
+        };
+
+        String[] environment = Stream.concat(Arrays.stream(tlsEnv), Arrays.stream(envs)).toArray(size -> (String[]) Array.newInstance(tlsEnv.getClass().getComponentType(), size));
+
+        this.environ = initializeTLS(environment);
         this.setErrno(0);
     }
 
@@ -202,7 +182,7 @@ public class AndroidElfLoader extends AbstractLoader<AndroidFileIO> implements M
                     log.debug("resolveSymbols[{}]{} symbol resolved to {}", moduleSymbol.soName, moduleSymbol.symbol.getName(), resolved.toSoName);
                     resolved.relocation(emulator, m);
                     iterator.remove();
-                } else if(showWarning) {
+                } else if (showWarning) {
                     log.info("[{}]symbol {} is missing relocationAddr={}, offset=0x{}", moduleSymbol.soName, moduleSymbol.symbol, moduleSymbol.relocationAddr, Long.toHexString(moduleSymbol.offset));
                 }
             }
@@ -634,7 +614,8 @@ public class AndroidElfLoader extends AbstractLoader<AndroidFileIO> implements M
         ElfSection symbolTableSection = null;
         try {
             symbolTableSection = elfFile.getSymbolTableSection();
-        } catch(Throwable ignored) {}
+        } catch (Throwable ignored) {
+        }
         if (load_virtual_address == 0) {
             throw new IllegalStateException("load_virtual_address");
         }
@@ -740,7 +721,7 @@ public class AndroidElfLoader extends AbstractLoader<AndroidFileIO> implements M
                 mMapListener.onMap(brk, address - brk, UnicornConst.UC_PROT_READ | UnicornConst.UC_PROT_WRITE);
             }
             this.brk = address;
-        } else if(address < brk) {
+        } else if (address < brk) {
             backend.mem_unmap(address, brk - address);
             if (mMapListener != null) {
                 mMapListener.onUnmap(address, brk - address);
