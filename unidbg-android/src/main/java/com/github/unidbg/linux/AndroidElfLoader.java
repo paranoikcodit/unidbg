@@ -42,7 +42,7 @@ public class AndroidElfLoader extends AbstractLoader<AndroidFileIO> implements M
 
     private Symbol malloc, free;
 
-    public AndroidElfLoader(Emulator<AndroidFileIO> emulator, UnixSyscallHandler<AndroidFileIO> syscallHandler) {
+    public AndroidElfLoader(Emulator<AndroidFileIO> emulator, UnixSyscallHandler<AndroidFileIO> syscallHandler, String[] envs) {
         super(emulator, syscallHandler);
 
         // init stack

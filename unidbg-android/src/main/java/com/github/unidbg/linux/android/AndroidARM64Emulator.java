@@ -40,7 +40,7 @@ public class AndroidARM64Emulator extends AbstractARM64Emulator<AndroidFileIO> i
 
     @Override
     protected Memory createMemory(UnixSyscallHandler<AndroidFileIO> syscallHandler, String[] envs) {
-        return new AndroidElfLoader(this, syscallHandler);
+        return new AndroidElfLoader(this, syscallHandler, envs);
     }
 
     @Override
