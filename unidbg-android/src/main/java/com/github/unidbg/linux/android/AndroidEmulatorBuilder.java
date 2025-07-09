@@ -19,7 +19,7 @@ public class AndroidEmulatorBuilder extends EmulatorBuilder<AndroidEmulator> {
 
     @Override
     public AndroidEmulator build() {
-        return is64Bit ? new AndroidARM64Emulator(processName, rootDir, backendFactories) : new AndroidARMEmulator(processName, rootDir, backendFactories);
+        return is64Bit ? new AndroidARM64Emulator(processName, rootDir, backendFactories, envVars.toArray(new String[0])) : new AndroidARMEmulator(processName, rootDir, backendFactories, envVars.toArray(new String[0]));
     }
-
+    
 }

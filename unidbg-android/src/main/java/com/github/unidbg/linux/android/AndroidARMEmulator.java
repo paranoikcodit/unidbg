@@ -31,8 +31,8 @@ import java.util.Collection;
 
 public class AndroidARMEmulator extends AbstractARMEmulator<AndroidFileIO> implements AndroidEmulator {
 
-    protected AndroidARMEmulator(String processName, File rootDir, Collection<BackendFactory> backendFactories) {
-        super(processName, rootDir, Family.Android32, backendFactories);
+    protected AndroidARMEmulator(String processName, File rootDir, Collection<BackendFactory> backendFactories, String[] envs) {
+        super(processName, rootDir, Family.Android32, backendFactories, envs);
     }
 
     @Override

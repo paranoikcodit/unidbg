@@ -29,8 +29,8 @@ import java.util.Collection;
 
 public class AndroidARM64Emulator extends AbstractARM64Emulator<AndroidFileIO> implements AndroidEmulator {
 
-    protected AndroidARM64Emulator(String processName, File rootDir, Collection<BackendFactory> backendFactories) {
-        super(processName, rootDir, Family.Android64, backendFactories);
+    protected AndroidARM64Emulator(String processName, File rootDir, Collection<BackendFactory> backendFactories, String... envs) {
+        super(processName, rootDir, Family.Android64, backendFactories, envs);
     }
 
     @Override

@@ -38,11 +38,7 @@ import java.io.File;
 import java.io.PrintStream;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
 public abstract class AbstractARM64Emulator<T extends NewFileIO> extends AbstractEmulator<T> implements ARMEmulator<T> {
 
@@ -55,7 +51,7 @@ public abstract class AbstractARM64Emulator<T extends NewFileIO> extends Abstrac
 
     private final Dlfcn dlfcn;
 
-    public AbstractARM64Emulator(String processName, File rootDir, Family family, Collection<BackendFactory> backendFactories, String... envs) {
+    public AbstractARM64Emulator(String processName, File rootDir, Family family, Collection<BackendFactory> backendFactories, String[] envs) {
         super(true, processName, 0xfffe0000L, 0x10000, rootDir, family, backendFactories);
 
         backend.switchUserMode();
@@ -69,9 +65,11 @@ public abstract class AbstractARM64Emulator<T extends NewFileIO> extends Abstrac
                 }
                 return false;
             }
+
             @Override
             public void onAttach(UnHook unHook) {
             }
+
             @Override
             public void detach() {
                 throw new UnsupportedOperationException();
@@ -138,6 +136,7 @@ public abstract class AbstractARM64Emulator<T extends NewFileIO> extends Abstrac
             protected void dumpClass(String className) {
                 AbstractARM64Emulator.this.dumpClass(className);
             }
+
             @Override
             protected void searchClass(String keywords) {
                 AbstractARM64Emulator.this.searchClass(keywords);
@@ -233,7 +232,7 @@ public abstract class AbstractARM64Emulator<T extends NewFileIO> extends Abstrac
     private void printAssemble(PrintStream out, Instruction[] insns, long address, int maxLengthLibraryName, InstructionVisitor visitor) {
         StringBuilder builder = new StringBuilder();
         for (Instruction ins : insns) {
-            if(visitor != null) {
+            if (visitor != null) {
                 visitor.visitLast(builder);
             }
             builder.append('\n');

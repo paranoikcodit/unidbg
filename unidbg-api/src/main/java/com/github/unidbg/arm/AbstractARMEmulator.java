@@ -38,11 +38,7 @@ import java.io.File;
 import java.io.PrintStream;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
 public abstract class AbstractARMEmulator<T extends NewFileIO> extends AbstractEmulator<T> implements ARMEmulator<T> {
 
@@ -55,7 +51,7 @@ public abstract class AbstractARMEmulator<T extends NewFileIO> extends AbstractE
 
     private final Dlfcn dlfcn;
 
-    public AbstractARMEmulator(String processName, File rootDir, Family family, Collection<BackendFactory> backendFactories, String... envs) {
+    public AbstractARMEmulator(String processName, File rootDir, Family family, Collection<BackendFactory> backendFactories, String[] envs) {
         super(false, processName, 0xfffe0000L, 0x10000, rootDir, family, backendFactories);
 
         backend.switchUserMode();
@@ -70,9 +66,11 @@ public abstract class AbstractARMEmulator<T extends NewFileIO> extends AbstractE
                 }
                 return false;
             }
+
             @Override
             public void onAttach(UnHook unHook) {
             }
+
             @Override
             public void detach() {
                 throw new UnsupportedOperationException();
@@ -147,6 +145,7 @@ public abstract class AbstractARMEmulator<T extends NewFileIO> extends AbstractE
             protected void dumpClass(String className) {
                 AbstractARMEmulator.this.dumpClass(className);
             }
+
             @Override
             protected void searchClass(String keywords) {
                 AbstractARMEmulator.this.searchClass(keywords);
@@ -157,7 +156,7 @@ public abstract class AbstractARMEmulator<T extends NewFileIO> extends AbstractE
     @Override
     protected void closeInternal() {
         syscallHandler.destroy();
-        
+
         IOUtils.close(thumbDisassemblerCache);
         IOUtils.close(armDisassemblerCache);
         disassembleCache.clear();
@@ -214,7 +213,7 @@ public abstract class AbstractARMEmulator<T extends NewFileIO> extends AbstractE
             needUpdateCache = true;
         }
         if (needUpdateCache) {
-            insns = disassemble(address, size,  0);
+            insns = disassemble(address, size, 0);
             disassembleCache.put(address, insns);
         }
         printAssemble(out, insns, address, ARM.isThumb(backend), maxLengthLibraryName, visitor);
@@ -236,7 +235,7 @@ public abstract class AbstractARMEmulator<T extends NewFileIO> extends AbstractE
     private void printAssemble(PrintStream out, Instruction[] insns, long address, boolean thumb, int maxLengthLibraryName, InstructionVisitor visitor) {
         StringBuilder builder = new StringBuilder();
         for (Instruction ins : insns) {
-            if(visitor != null) {
+            if (visitor != null) {
                 visitor.visitLast(builder);
             }
             builder.append('\n');

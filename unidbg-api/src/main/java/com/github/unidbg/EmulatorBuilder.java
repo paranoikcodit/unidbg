@@ -22,6 +22,13 @@ public abstract class EmulatorBuilder<T extends ARMEmulator<?>> {
         return this;
     }
 
+    protected final List<String> envVars = new ArrayList<String>();
+
+    public EmulatorBuilder<T> addEnvVar(String env) {
+        envVars.add(env);
+        return this;
+    }
+
     protected File rootDir;
 
     public EmulatorBuilder<T> setRootDir(File rootDir) {
