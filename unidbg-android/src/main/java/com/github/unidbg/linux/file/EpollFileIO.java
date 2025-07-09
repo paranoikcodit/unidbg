@@ -8,9 +8,6 @@ import java.util.Map;
 
 public class EpollFileIO extends BaseAndroidFileIO {
 
-    /**
-     * ключ = отслеживаемый fd, значение = маска событий
-     */
     private final Map<Integer, Integer> watchMap = new HashMap<>();
     private static final int O_NONBLOCK = 04000;
     private boolean nonBlocking;
@@ -28,21 +25,25 @@ public class EpollFileIO extends BaseAndroidFileIO {
         if (nonBlocking && timeout != 0) {
             return -11;  // -EAGAIN
         }
-        // пока не генерируем события – возвращаем 0
+
         return 0;
+    }
+
+    @Override
+    public void close() {
+        watchMap.clear();
     }
 
     @Override
     protected void setFlags(long arg) {
         int newFlags = (int) arg;
 
-        // ядро разрешает менять только O_NONBLOCK; остальное игнорируется
         if ((newFlags & O_NONBLOCK) != 0) {
             nonBlocking = true;
-            this.oflags |= O_NONBLOCK;       // сохранить бит
+            this.oflags |= O_NONBLOCK;
         } else {
             nonBlocking = false;
-            this.oflags &= ~O_NONBLOCK;      // сбросить бит
+            this.oflags &= ~O_NONBLOCK;
         }
     }
 
