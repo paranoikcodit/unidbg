@@ -13,14 +13,7 @@ import com.github.unidbg.file.linux.AndroidFileIO;
 import com.github.unidbg.linux.ARM64SyscallHandler;
 import com.github.unidbg.linux.android.AndroidARM64Emulator;
 import com.github.unidbg.linux.android.AndroidResolver;
-import com.github.unidbg.linux.android.dvm.AbstractJni;
-import com.github.unidbg.linux.android.dvm.BaseVM;
-import com.github.unidbg.linux.android.dvm.DalvikModule;
-import com.github.unidbg.linux.android.dvm.DvmClass;
-import com.github.unidbg.linux.android.dvm.DvmObject;
-import com.github.unidbg.linux.android.dvm.StringObject;
-import com.github.unidbg.linux.android.dvm.VM;
-import com.github.unidbg.linux.android.dvm.VarArg;
+import com.github.unidbg.linux.android.dvm.*;
 import com.github.unidbg.linux.struct.Stat64;
 import com.github.unidbg.memory.Memory;
 import com.github.unidbg.memory.SvcMemory;
@@ -57,6 +50,7 @@ public class Android64Test extends AbstractJni {
         private MyARMSyscallHandler(SvcMemory svcMemory) {
             super(svcMemory);
         }
+
         @Override
         protected long fork(Emulator<?> emulator) {
             return emulator.getPid();
@@ -67,7 +61,7 @@ public class Android64Test extends AbstractJni {
         final File executable = new File("unidbg-android/src/test/native/android/libs/arm64-v8a/test");
         emulator = new AndroidARM64Emulator(executable.getName(),
                 new File("target/rootfs"),
-                Arrays.asList(new DynarmicFactory(true), new HypervisorFactory(true), new Unicorn2Factory(true))) {
+                Arrays.asList(new DynarmicFactory(true), new HypervisorFactory(true), new Unicorn2Factory(true)), new String[0]) {
             @Override
             protected UnixSyscallHandler<AndroidFileIO> createSyscallHandler(SvcMemory svcMemory) {
                 return new MyARMSyscallHandler(svcMemory);
