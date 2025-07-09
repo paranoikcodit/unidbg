@@ -17,23 +17,13 @@ import com.github.unidbg.linux.signal.SignalTask;
 import com.github.unidbg.linux.struct.StatFS;
 import com.github.unidbg.linux.struct.StatFS32;
 import com.github.unidbg.linux.struct.StatFS64;
-import com.github.unidbg.linux.thread.FutexIndefinitelyWaiter;
-import com.github.unidbg.linux.thread.FutexNanoSleepWaiter;
-import com.github.unidbg.linux.thread.FutexWaiter;
-import com.github.unidbg.linux.thread.MarshmallowThread;
-import com.github.unidbg.linux.thread.NanoSleepWaiter;
+import com.github.unidbg.linux.thread.*;
 import com.github.unidbg.pointer.UnidbgPointer;
 import com.github.unidbg.signal.SigSet;
 import com.github.unidbg.signal.SignalOps;
 import com.github.unidbg.signal.UnixSigSet;
 import com.github.unidbg.spi.SyscallHandler;
-import com.github.unidbg.thread.MainTask;
-import com.github.unidbg.thread.RunnableTask;
-import com.github.unidbg.thread.Task;
-import com.github.unidbg.thread.ThreadContextSwitchException;
-import com.github.unidbg.thread.ThreadDispatcher;
-import com.github.unidbg.thread.ThreadTask;
-import com.github.unidbg.thread.Waiter;
+import com.github.unidbg.thread.*;
 import com.github.unidbg.unix.IO;
 import com.github.unidbg.unix.UnixEmulator;
 import com.github.unidbg.unix.UnixSyscallHandler;
@@ -120,21 +110,32 @@ public abstract class AndroidSyscallHandler extends UnixSyscallHandler<AndroidFi
         RegisterContext ctx = emulator.getContext();
         int initval = ctx.getIntArg(0);
         int flags = ctx.getIntArg(1);
+
         if (log.isDebugEnabled()) {
             log.debug("eventfd2 initval={}, flags=0x{}", initval, Integer.toHexString(flags));
         }
-        if ((flags & EFD_CLOEXEC) != 0) {
-            throw new UnsupportedOperationException("eventfd2 flags=0x" + Integer.toHexString(flags));
+
+        final int allowedFlags = EFD_CLOEXEC | EFD_NONBLOCK | EFD_SEMAPHORE;
+        if ((flags & ~allowedFlags) != 0) {
+            throw new UnsupportedOperationException(
+                    "eventfd2 unsupported flags=0x" + Integer.toHexString(flags)
+            );
         }
+
         boolean nonblock = (flags & EFD_NONBLOCK) != 0;
         boolean semaphore = (flags & EFD_SEMAPHORE) != 0;
+
         AndroidFileIO fileIO = new EventFD(initval, semaphore, nonblock);
-        int minFd = this.getMinFd();
-        this.fdMap.put(minFd, fileIO);
+        int fd = this.getMinFd();
+        this.fdMap.put(fd, fileIO);
+
         if (verbose) {
-            System.out.printf("eventfd(%d) with flags=0x%x fd=%d from %s%n", initval, flags, minFd, emulator.getContext().getLRPointer());
+            System.out.printf(
+                    "eventfd(%d) with flags=0x%x fd=%d from %s%n",
+                    initval, flags, fd, emulator.getContext().getLRPointer()
+            );
         }
-        return minFd;
+        return fd;
     }
 
     protected int sched_setscheduler(Emulator<AndroidFileIO> emulator) {
